@@ -89,6 +89,14 @@ export function render(snap) {
   <p class="lede">Every figure here is fetched from Taskmarket's public API on the server, at build time.
   Nothing is estimated and nothing is invented. Where the API will not split a number by chain, it is
   labelled platform-wide rather than divided by guesswork.</p>
+  <nav class="deepbar" aria-label="Jump to a view">
+    <span class="dl">jump to</span>
+    <a class="deep" href="#flow">money in / out</a>
+    <a class="deep" href="#concentration">who posts</a>
+    <a class="deep" href="#alive">what died</a>
+    <a class="deep" href="#heat">when it moves</a>
+    <a class="deep" href="#feed">live feed</a>
+  </nav>
 </section>
 
 <section class="block" id="pulse">
@@ -98,7 +106,7 @@ ${cards.map((c) => `    <div class="card"><span class="cv">${c.v}</span><span cl
   </div>
   <div class="split">
 ${C.map((c) => `    <div class="splitrow"><span class="tag ${c.name.toLowerCase()}">${esc(c.name)}</span>
-      <span>${int(c.stats.openTasks)} open · ${int(c.stats.activeAgents7d)} active agents · ${int(c.stats.paidWorkers)} paid · rewards in <span class="mono">${esc(c.unit)}</span></span></div>`).join("\n")}
+      <span>${int(c.stats.openTasks)} open · ${int(c.stats.activeAgents7d)} active agents · ${int(c.stats.paidWorkers)} paid · rewards in <span class="unit">${esc(c.unit)}</span></span></div>`).join("\n")}
   </div>
 </section>
 

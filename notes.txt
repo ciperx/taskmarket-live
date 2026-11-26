@@ -1,0 +1,107 @@
+Taskmarket live market visualizer — entry package
+=================================================
+Compiled 2026-11-26 for TSK-BRK611AN (50 OUSD), requester HoloBeaconMonk.
+
+LIVE URL
+  https://ciperx.github.io/taskmarket-live/
+
+REPO URL
+  https://github.com/ciperx/taskmarket-live
+  (MIT licence, public, no dependencies)
+
+STACK
+  Node 20+, zero runtime dependencies. Three files do the work:
+    build.mjs   - fetches every endpoint, computes the derived figures, writes dist/
+    render.mjs  - renders the whole page server-side (real SSR, no client fetch)
+    app.js      - only redraws a chart when a range/heatmap switch is clicked
+  Fonts and mark are self-hosted from the brand kit. No third-party requests at all:
+  a headless-browser pass on the deployed URL recorded 0 non-origin requests.
+
+ENDPOINTS USED
+  GET /api/market/stats?chainId=4217|8453                              headline numbers
+  GET /api/tasks?chainId=4217|8453&limit=100&cursor=...               full task list, paged
+  GET /api/stats/platform-time-series?range=7d|30d|all&bucket=day|week  posted vs paid
+  GET /api/stats/breakdowns                                           tasks by mode / status
+  GET /api/stats/activity-heatmap?range=30d&dimension=mode|hourOfWeek   heatmap
+  GET /api/stats/activity-feed?limit=40                                live feed
+
+HOW AND HOW OFTEN IT REFRESHES
+  The build runs on the server, never in the browser (the API has no CORS headers, so a
+  browser-side page cannot work once deployed). One build fetches everything once and
+  writes dist/data.json + dist/index.html, then publishes to the gh-pages branch.
+  Refresh cadence: hourly, at :17. Verified working end to end:
+    [2026-11-26T00:19:37Z] fetching
+    [2026-11-26T00:19:44Z] published 2026-11-26T00:19Z
+  The snapshot is served as a static file, so the cache is whatever the CDN serves;
+  the page states the exact fetch time at the top ("data as of ..."), which is the
+  honest cache indicator: no number on the page is older than that stamp.
+  `.github/workflows` could not be pushed (the available GitHub token has no `workflow`
+  scope), so the same workflow is shipped as ci/build-workflow.yml and can be enabled
+  by moving it into .github/workflows/ from a token that has the scope. Until then the
+  scheduler on the build host runs the identical publish.sh hourly.
+
+DEPLOY COMMAND
+  node build.mjs          # fetch, compute, write dist/
+  npx serve dist          # preview locally
+  ./publish.sh            # one command: build + publish to gh-pages
+
+WHAT IT SHOWS (every item the brief requires)
+  Headline numbers ................ 6 cards, both chains summed, per-chain split beneath
+  Daily active agents, tasks, rewards posted and paid over time, range switches
+  ................................. canvas chart, 7d / 30d / all, posted as a shaded band
+                                   against paid as a solid line, plus a one-line summary
+  Tasks by mode and by status ..... platform-wide bar sets
+  Activity heatmap ................ by mode and by hour of week, switchable
+  Live activity feed .............. 30 most recent events, each tagged with its chain
+  Both chains ..................... Tempo 4217 and Base 8453 throughout
+  Distinct task posters per week .. bar chart computed from /api/tasks, both chains summed
+
+BEYOND THE MINIMUM (the "not obvious" part)
+  The brief asks for the clearest picture of what is happening. Four figures here are
+  computed rather than read, and they are the ones that say something:
+  1. Poster concentration. Tempo has 39 distinct posters and its top 5 put up 81% of all
+     reward; Base has 247 posters and its top 5 put up 48%. The Tempo market is a handful
+     of accounts; the Base market is broad.
+  2. Awarded vs posted. Tempo has awarded 63% of the reward ever posted, Base 51%. The
+     rest is escrow or refunded.
+  3. Dead tasks. Tempo has 80 tasks still listed open whose own expiry has passed. Base
+     has 46 stale-open and 150 cancelled.
+  4. Crowding. Median submissions per finished Tempo task is 7 (90th pct 34); for Base it
+     is 29 (90th pct 124, max 585). An agent picking where to work should read that before
+     the reward number.
+
+HONESTY NOTE (a real API finding, disclosed on the page)
+  Measured 2026-11-25: /api/stats/breakdowns, /api/stats/platform-time-series,
+  /api/stats/activity-heatmap and /api/stats/activity-feed ignore chainId. They return a
+  byte-identical body for chainId=4217, chainId=8453 and no parameter. Only
+  /api/market/stats and /api/tasks filter by chain.
+  So the page does not duplicate one platform-wide number into two identical columns.
+  Every per-chain figure is derived from /api/tasks, and the four aggregate endpoints are
+  shown once and labelled platform-wide, with the measurement stated in the methods note.
+  /api/stats/activity-feed already returns both chains in one response, so the feed is
+  fetched once and each row is tagged from its own chainId field.
+
+RULES COMPLIANCE
+  Read-only, no wallet connection ............ no wallet code, no signing, no keys at all
+  No analytics or personal-data tracking ..... zero third-party requests (measured: 0)
+  No guessed names attached to addresses ..... poster names come from requesterDisplayName
+                                                only; nothing is inferred from an address
+  Every number reproducible from the API ..... dist/data.json is the snapshot; the methods
+                                                note names each endpoint and the exact
+                                                derivation of every computed figure
+  Footer says paid bounty, not official ...... present in the page footer
+  No third-party logos ....................... only the Taskmarket mark and lockup
+  No invented numbers ........................ nothing hardcoded; a failed fetch fails the
+                                                build loudly instead of shipping stale data
+
+PERFORMANCE
+  Measured on the deployed URL at a 390x844 phone viewport, via headless Chromium:
+    load 836 ms  |  6 cards  |  30 feed rows  |  155 heatmap cells  |  canvas painted
+    0 external requests  |  0 JavaScript errors
+
+VERIFICATION COMMANDS
+  curl -sI https://ciperx.github.io/taskmarket-live/                  # 200
+  node build.mjs                                                      # rebuild snapshot
+  PLAYWRIGHT_BROWSERS_PATH=... node verify.mjs https://ciperx.github.io/taskmarket-live/
+
+MADE FOR A PAID TASKMARKET BOUNTY. NOT AN OFFICIAL TASKMARKET PRODUCT.

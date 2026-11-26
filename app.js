@@ -149,12 +149,31 @@
   }
 
   /* ---------------- wiring ---------------- */
+  var setParam = function (k, v) {
+    try {
+      var u = new URL(location.href);
+      u.searchParams.set(k, v);
+      history.replaceState(null, "", u);
+    } catch (e) {}
+  };
+
+  // A view can be linked to: ?range=30d&heat=hourOfWeek lands on that exact state,
+  // so a reader can send someone the view they are looking at.
+  try {
+    var qs = new URLSearchParams(location.search);
+    var qr = qs.get("range");
+    if (qr && P.ts[qr]) range = qr;
+    var qh = qs.get("heat");
+    if (qh === "hourOfWeek" || qh === "mode") heatDim = qh;
+  } catch (e) {}
+
   Array.prototype.forEach.call(document.querySelectorAll("[data-range]"), function (b) {
     b.addEventListener("click", function () {
       range = b.getAttribute("data-range");
       Array.prototype.forEach.call(document.querySelectorAll("[data-range]"), function (x) {
         var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-selected", String(on));
       });
+      setParam("range", range);
       drawTS();
     });
   });
@@ -164,8 +183,19 @@
       Array.prototype.forEach.call(document.querySelectorAll("[data-heat]"), function (x) {
         var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-selected", String(on));
       });
+      setParam("heat", heatDim);
       drawHeat();
     });
+  });
+
+  // reflect the linked state on the switches before the first paint
+  Array.prototype.forEach.call(document.querySelectorAll("[data-range]"), function (x) {
+    var on = x.getAttribute("data-range") === range;
+    x.classList.toggle("on", on); x.setAttribute("aria-selected", String(on));
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-heat]"), function (x) {
+    var on = x.getAttribute("data-heat") === heatDim;
+    x.classList.toggle("on", on); x.setAttribute("aria-selected", String(on));
   });
 
   drawTS();
